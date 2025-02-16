@@ -1,8 +1,6 @@
 import {initializeApp} from 'firebase/app'
-import {getAuth, signInWithPopup, GoogleAuthProvider, User} from 'firebase/auth'
+import {getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, User} from 'firebase/auth'
 import {getFirestore, doc, getDoc, setDoc} from 'firebase/firestore'
-
-
 
 const firebaseConfig = {
     apiKey: "AIzaSyCUA03q8yu8bHLwoU_Bg77OwjfkI5dAG2M",
@@ -16,21 +14,22 @@ const firebaseConfig = {
   // Initialize Firebase
   export const firebaseApp = initializeApp(firebaseConfig);
 
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({
+  const googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({
     prompt: 'select_account'
   });
 
   export const auth = getAuth();
-  export const signInWithGooglePopup = () => signInWithPopup(auth, provider);
+  export const signInWithGooglePopup = () => signInWithPopup(auth, googleProvider);
   export const db = getFirestore();
 
-  export const createUserDocumentFromAuth = async (userAuth: User) => {
+  export const createUserDocumentFromAuth = async (userAuth: User, additionalInformation = {} ) => {
+    if(!userAuth) return;
     const userDocRef = doc(db, 'users', userAuth.uid);
-    console.log(userDocRef);
+
     const userSnapShot = await getDoc(userDocRef);
-    console.log(userSnapShot);
-    console.log(userSnapShot.exists());
+
+    
     if(!userSnapShot.exists()) {
       const {displayName, email} = userAuth;
       const createdAt = new Date();
@@ -38,7 +37,8 @@ const firebaseConfig = {
         await setDoc(userDocRef, {
           displayName,
           email,
-          createdAt
+          createdAt,
+          ...additionalInformation
         });
       } catch (error) {
         if (error instanceof Error) {
@@ -50,4 +50,9 @@ const firebaseConfig = {
       return userDocRef;
     }
 
+  }
+
+  export const createAuthUserWithEmailAndPassword = async (email: string, password: string) => {
+    if(!email || !password) return;
+    return await createUserWithEmailAndPassword(auth, email, password);
   }
